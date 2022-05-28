@@ -1,0 +1,48 @@
+group 'com.fluttercandies.flutter_candies_jpush'
+version '1.0'
+
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        google()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.1.0'
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        mavenCentral()
+        jcenter()
+        google()
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 31
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    packagingOptions {
+        merge 'AndroidManifest.xml'
+    }
+
+    lintOptions {
+        disable 'InvalidPackage'
+    }
+    defaultConfig {
+        minSdkVersion 16
+    }
+}
+
+dependencies {
+    implementation 'cn.jiguang.sdk:jpush:4.6.6'
+    implementation 'cn.jiguang.sdk:jcore:3.2.3'
+}
