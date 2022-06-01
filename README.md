@@ -8,3 +8,5 @@
 集成时，只需要在 `build.gradle` 中 `android`-`defaultConfig`-`manifestPlaceholders` 中添加各个厂商密钥信息即可;
 
 密钥格式参照[厂商通道 SDK 集成指南](https://docs.jiguang.cn/jpush/client/Android/android_3rd_guide)
+
+注意：华为平台是配置 `agconnect-services.json` 文件！！！！
