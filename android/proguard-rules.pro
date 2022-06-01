@@ -13,7 +13,6 @@
 -keep class com.xiaomi.push.** { *; }
 
 # huawei
--ignorewarning
 -keepattributes *Annotation*
 -keepattributes Exceptions
 -keepattributes InnerClasses

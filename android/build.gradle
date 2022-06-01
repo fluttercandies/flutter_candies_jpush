@@ -6,6 +6,7 @@ buildscript {
         mavenCentral()
         jcenter()
         google()
+        maven {url 'https://developer.huawei.com/repo/'}
     }
 
     dependencies {
@@ -18,10 +19,13 @@ rootProject.allprojects {
         mavenCentral()
         jcenter()
         google()
+        maven {url 'https://developer.huawei.com/repo/'}
+        flatDir { dirs project(":flutter_candies_jpush").file("libs") }
     }
 }
 
 apply plugin: 'com.android.library'
+apply plugin: 'com.huawei.agconnect'
 
 android {
     compileSdkVersion 31
@@ -30,20 +34,40 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    sourceSets {
+        main.jniLibs.srcDir 'libs'
+    }
     packagingOptions {
         merge 'AndroidManifest.xml'
+        merge 'R.txt'
+        merge 'classes.jar'
     }
-
     lintOptions {
         disable 'InvalidPackage'
     }
     defaultConfig {
-        minSdkVersion 16
+        minSdkVersion 19
+    }
+    buildTypes {
+        release {
+            consumerProguardFiles "proguard-rules.pro"
+        }
     }
 }
 
 dependencies {
-    implementation 'cn.jiguang.sdk:jpush:4.6.6'
-    implementation 'cn.jiguang.sdk:jcore:3.2.4'
     implementation 'com.google.code.gson:gson:2.6.2+'
+    implementation 'cn.jiguang.sdk:jcore:3.2.4'
+    implementation 'cn.jiguang.sdk:jpush:4.6.6'
+    implementation 'cn.jiguang.sdk.plugin:xiaomi:4.6.6'//版本号和对应的JPush版本号相同
+    implementation 'cn.jiguang.sdk.plugin:vivo:4.6.6'
+    implementation 'cn.jiguang.sdk.plugin:meizu:4.6.6'
+
+    implementation 'cn.jiguang.sdk.plugin:huawei:4.6.6'
+    implementation 'com.huawei.hms:push:6.3.0.304'
+
+    implementation 'cn.jiguang.sdk.plugin:oppo:4.6.6'
+    implementation 'commons-codec:commons-codec:1.6'
+    implementation 'androidx.annotation:annotation:1.1.0'
+    implementation(name: "opp-push-3.0.0", ext: "aar")
 }
