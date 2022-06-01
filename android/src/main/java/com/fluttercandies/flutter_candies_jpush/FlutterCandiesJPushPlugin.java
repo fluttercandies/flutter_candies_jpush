@@ -28,9 +28,8 @@ import io.flutter.plugin.common.MethodChannel.Result;
 /**
  * FlutterCandiesJPushPlugin
  */
-public class FlutterCandiesJPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAware {
-    private Activity activity;
-    private MethodChannel channel;
+public class FlutterCandiesJPushPlugin implements FlutterPlugin, MethodCallHandler {
+    protected MethodChannel channel;
     private Context applicationContext;
     protected static final String TAG = "JPushPlugin";
     private final AtomicInteger callbackSequence = new AtomicInteger(0);
@@ -38,9 +37,17 @@ public class FlutterCandiesJPushPlugin implements FlutterPlugin, MethodCallHandl
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
-        channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "jpush");
+        channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "flutter_candies_jpush");
         applicationContext = flutterPluginBinding.getApplicationContext();
         channel.setMethodCallHandler(this);
+        JPushEventReceiver.plugin = this;
+    }
+
+    @Override
+    public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
+        channel.setMethodCallHandler(null);
+        JPushEventReceiver.plugin = null;
+        applicationContext = null;
     }
 
     @Override
@@ -129,11 +136,6 @@ public class FlutterCandiesJPushPlugin implements FlutterPlugin, MethodCallHandl
         }
     }
 
-    @Override
-    public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
-        channel.setMethodCallHandler(null);
-        applicationContext = null;
-    }
 
     @SuppressWarnings({"ConstantConditions"})
     private void setAuth(MethodCall call, Result result) {
@@ -210,7 +212,7 @@ public class FlutterCandiesJPushPlugin implements FlutterPlugin, MethodCallHandl
     @SuppressWarnings({"ConstantConditions"})
     private void removeLocalNotification(MethodCall call, Result result) {
         Log.d(TAG, "removeLocalNotification: " + call.arguments.toString());
-        Integer id = call.arguments();
+        Long id = call.arguments();
         JPushInterface.removeLocalNotification(applicationContext, id);
         result.success(null);
     }
@@ -256,16 +258,15 @@ public class FlutterCandiesJPushPlugin implements FlutterPlugin, MethodCallHandl
 
     private void setMobileNumber(MethodCall call, Result result) {
         Log.d(TAG, "setMobileNumber: " + call.arguments.toString());
-        String mobileNumber = call.arguments();
         int sequence = callbackSequence.incrementAndGet();
-        JPushInterface.setMobileNumber(applicationContext, sequence, mobileNumber);
+        JPushInterface.setMobileNumber(applicationContext, sequence, call.arguments());
+        JPushEventReceiver.callbacks.put(sequence, new Pair<>("setMobileNumber", result));
     }
 
     private void setAlias(MethodCall call, Result result) {
         Log.d(TAG, "setAlias: " + call.arguments.toString());
-        String alias = call.arguments();
         int sequence = callbackSequence.incrementAndGet();
-        JPushInterface.setAlias(applicationContext, sequence, alias);
+        JPushInterface.setAlias(applicationContext, sequence, call.arguments());
         JPushEventReceiver.callbacks.put(sequence, new Pair<>("setAlias", result));
     }
 
@@ -333,33 +334,8 @@ public class FlutterCandiesJPushPlugin implements FlutterPlugin, MethodCallHandl
 
     private void checkTagBindState(MethodCall call, Result result) {
         Log.d(TAG, "checkTagBindState: " + call.arguments.toString());
-        String tag = call.arguments();
         int sequence = callbackSequence.incrementAndGet();
-        JPushInterface.checkTagBindState(applicationContext, sequence, tag);
+        JPushInterface.checkTagBindState(applicationContext, sequence, call.arguments());
         JPushEventReceiver.callbacks.put(sequence, new Pair<>("checkTagBindState", result));
-    }
-
-    @Override
-    public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
-        activity = binding.getActivity();
-        JPushInterface.onResume(activity);
-    }
-
-    @Override
-    public void onDetachedFromActivityForConfigChanges() {
-        JPushInterface.onPause(activity);
-        activity = null;
-    }
-
-    @Override
-    public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding binding) {
-        activity = binding.getActivity();
-        JPushInterface.onResume(activity);
-    }
-
-    @Override
-    public void onDetachedFromActivity() {
-        JPushInterface.onPause(activity);
-        activity = null;
     }
 }

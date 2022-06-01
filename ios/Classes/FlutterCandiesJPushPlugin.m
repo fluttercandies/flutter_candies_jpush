@@ -79,7 +79,9 @@
 }
 
 - (void)networkDidReceiveMessage:(NSNotification *)notification {
-    [_channel invokeMethod:@"onReceiveMessage" arguments:[notification userInfo]];
+    NSDictionary *msg = @{@"messageId": notification.userInfo[@"_j_msgid"], @"title": notification.name,
+            @"message": notification.userInfo[@"content"], @"extras": notification.userInfo[@"extras"]};
+    [_channel invokeMethod:@"onReceiveMessage" arguments:msg];
 }
 
 - (void)dealloc {
@@ -89,10 +91,10 @@
 
 ///
 + (void)registerWithRegistrar:(NSObject <FlutterPluginRegistrar> *)registrar {
-    FlutterMethodChannel *channel = [FlutterMethodChannel methodChannelWithName:@"flutter_candies_jpush" binaryMessenger:[registrar messenger]];
     FlutterCandiesJPushPlugin *instance = [[FlutterCandiesJPushPlugin alloc] init];
+    instance.channel = [FlutterMethodChannel methodChannelWithName:@"flutter_candies_jpush" binaryMessenger:[registrar messenger]];
     [registrar addApplicationDelegate:instance];
-    [registrar addMethodCallDelegate:instance channel:channel];
+    [registrar addMethodCallDelegate:instance channel:instance.channel];
 }
 
 - (void)handleMethodCall:(FlutterMethodCall *)call result:(FlutterResult)result {
@@ -205,9 +207,7 @@
         if (resCode == 1011) {
             NSLog(@"simulator can not get registrationId");
         }
-        if (registrationID == nil) {
-            registrationID = @"";
-        }
+        registrationID = registrationID ? registrationID : @"";
         result(registrationID);
     }];
 }
@@ -322,7 +322,7 @@
     NSLog(@"setMobileNumber:%@", call.arguments);
     NSString *mobileNumber = call.arguments;
     [JPUSHService setMobileNumber:mobileNumber completion:^(NSError *error) {
-        result(@(error == nil));
+        result(@(@(error == nil).boolValue));
         if (error) NSLog(@"setMobileNumber error:%@", error.description);
     }];
 }
@@ -331,7 +331,7 @@
     NSLog(@"setAlias:%@", call.arguments);
     NSString *alias = call.arguments;
     [JPUSHService setAlias:alias completion:^(NSInteger iResCode, NSString *iAlias, NSInteger seq) {
-        result(@(iResCode == 0));
+        result(@(@(iResCode == 0).boolValue));
         if (iResCode != 0) NSLog(@"setAlias error:%@", @(iResCode));
     }                  seq:0];
 }
@@ -339,7 +339,7 @@
 - (void)deleteAlias:(FlutterMethodCall *)call result:(FlutterResult)result {
     NSLog(@"deleteAlias:%@", call.arguments);
     [JPUSHService deleteAlias:^(NSInteger iResCode, NSString *iAlias, NSInteger seq) {
-        result(@(iResCode == 0));
+        result(@(@(iResCode == 0).boolValue));
         if (iResCode != 0) NSLog(@"setAlias error:%@", @(iResCode));
     }                     seq:0];
 }
@@ -356,7 +356,7 @@
     NSSet *tagSet;
     if (call.arguments != NULL) tagSet = [NSSet setWithArray:call.arguments];
     [JPUSHService setTags:tagSet completion:^(NSInteger iResCode, NSSet *iTags, NSInteger seq) {
-                result(@(iResCode == 0));
+                result(@(@(iResCode == 0).boolValue));
                 if (iResCode != 0) NSLog(@"setTags error:%@", @(iResCode));
             }
                       seq:0];
@@ -367,7 +367,7 @@
     NSSet *tagSet;
     if (call.arguments != NULL) tagSet = [NSSet setWithArray:call.arguments];
     [JPUSHService addTags:tagSet completion:^(NSInteger iResCode, NSSet *iTags, NSInteger seq) {
-                result(@(iResCode == 0));
+                result(@(@(iResCode == 0).boolValue));
                 if (iResCode != 0) NSLog(@"addTags error:%@", @(iResCode));
             }
                       seq:0];
@@ -378,7 +378,7 @@
     NSSet *tagSet;
     if (call.arguments != NULL) tagSet = [NSSet setWithArray:call.arguments];
     [JPUSHService deleteTags:tagSet completion:^(NSInteger iResCode, NSSet *iTags, NSInteger seq) {
-                result(@(iResCode == 0));
+                result(@(@(iResCode == 0).boolValue));
                 if (iResCode != 0) NSLog(@"deleteTags error:%@", @(iResCode));
             }
                          seq:0];
@@ -387,7 +387,7 @@
 - (void)cleanTags:(FlutterMethodCall *)call result:(FlutterResult)result {
     NSLog(@"cleanTags:");
     [JPUSHService cleanTags:^(NSInteger iResCode, NSSet *iTags, NSInteger seq) {
-                result(@(iResCode == 0));
+                result(@(@(iResCode == 0).boolValue));
                 if (iResCode != 0) NSLog(@"cleanTags error:%@", @(iResCode));
             }
                         seq:0];
@@ -417,24 +417,26 @@
 // 如果 App 状态为未运行，此函数将被调用
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     _completeLaunchNotification = launchOptions;
-    if (launchOptions != nil) {
-        _launchNotification = launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey];
-        _launchNotification = [self jpushFormatAPNSDic:_launchNotification.copy];
+    if (launchOptions == nil) return YES;
+    if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
+        NSDictionary *userInfo = launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey];
+        NSMutableDictionary *msg = [self jpushFormatAPNSDic:userInfo];
+        if (userInfo[@"aps"] && userInfo[@"aps"][@"alert"]) {
+            NSDictionary *alert = userInfo[@"aps"][@"alert"];
+            msg[@"title"] = alert[@"title"];
+            msg[@"message"] = alert[@"body"];
+        }
+        msg[@"title"] = msg[@"title"] ? msg[@"title"] : @"";
+        msg[@"message"] = msg[@"message"] ? msg[@"message"] : @"";
+        _launchNotification = msg.copy;
     }
 
     if (launchOptions[UIApplicationLaunchOptionsLocalNotificationKey]) {
         UILocalNotification *localNotification = launchOptions[UIApplicationLaunchOptionsLocalNotificationKey];
-        NSMutableDictionary *localNotificationEvent = @{}.mutableCopy;
-        localNotificationEvent[@"content"] = localNotification.alertBody;
-        localNotificationEvent[@"badge"] = @(localNotification.applicationIconBadgeNumber);
-        localNotificationEvent[@"extras"] = localNotification.userInfo;
-        localNotificationEvent[@"fireTime"] = @((long) ([localNotification.fireDate timeIntervalSince1970] * 1000));
-        localNotificationEvent[@"soundName"] = [localNotification.soundName isEqualToString:UILocalNotificationDefaultSoundName] ? @"" : localNotification.soundName;
-
-        if (@available(iOS 8.2, *)) {
-            localNotificationEvent[@"title"] = localNotification.alertTitle;
-        }
-        _launchNotification = localNotificationEvent;
+        NSMutableDictionary *msg = [self jpushFormatAPNSDic:localNotification.userInfo];
+        msg[@"message"] = localNotification.alertBody;
+        if (@available(iOS 8.2, *)) msg[@"title"] = localNotification.alertTitle;
+        _launchNotification = msg.copy;
     }
     //[self performSelector:@selector(addNotificationWithDateTrigger) withObject:nil afterDelay:2];
     return YES;
@@ -463,11 +465,20 @@
     [_channel invokeMethod:@"onIosSettingsRegistered" arguments:settingsDictionary];
 }
 
+
+// iOS 10 以下 接到通知
 - (BOOL)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
     NSLog(@"application:didReceiveRemoteNotification:fetchCompletionHandler");
-
     [JPUSHService handleRemoteNotification:userInfo];
-    [_channel invokeMethod:@"onReceiveNotification" arguments:userInfo];
+    NSMutableDictionary *msg = [self jpushFormatAPNSDic:userInfo];
+    if (userInfo[@"aps"] && userInfo[@"aps"][@"alert"]) {
+        NSDictionary *alert = userInfo[@"aps"][@"alert"];
+        msg[@"title"] = alert[@"title"];
+        msg[@"message"] = alert[@"body"];
+    }
+    msg[@"title"] = msg[@"title"] ? msg[@"title"] : @"";
+    msg[@"message"] = msg[@"message"] ? msg[@"message"] : @"";
+    [_channel invokeMethod:@"onReceiveNotification" arguments:msg];
     completionHandler(UIBackgroundFetchResultNewData);
     return YES;
 }
@@ -475,75 +486,60 @@
 // iOS 10 以下点击本地通知
 - (void)application:(UIApplication *)application didReceiveLocalNotification:(UILocalNotification *)notification {
     NSLog(@"application:didReceiveLocalNotification:");
-
-    NSMutableDictionary *dic = [NSMutableDictionary dictionary];
-    NSString *title = @"";
-    if (@available(iOS 8.2, *)) {
-        title = notification.alertTitle;
-    } else {
-        // Fallback on earlier versions
-    }
-
-    NSString *body = notification.alertBody;
-    NSString *action = notification.alertAction;
-
-    [dic setValue:title ?: @"" forKey:@"title"];
-    [dic setValue:body ?: @"" forKey:@"body"];
-    [dic setValue:action ?: @"" forKey:@"action"];
-
+    NSMutableDictionary *msg = [self jpushFormatAPNSDic:notification.userInfo];
+    msg[@"title"] = notification.alertTitle;
+    msg[@"message"] = notification.alertBody;
     dispatch_async(dispatch_get_main_queue(), ^{
-        [self.channel invokeMethod:@"onOpenNotification" arguments:dic];
+        [self.channel invokeMethod:@"onOpenNotification" arguments:msg];
     });
 }
 
+
+// iOS 10以及以上 收到通知
 - (void)jpushNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(NSInteger))completionHandler  API_AVAILABLE(ios(10.0)) {
-    NSLog(@"jpushNotificationCenter:willPresentNotification::");
+    NSLog(@"jpushNotificationCenter:willPresentNotification:: ");
     NSDictionary *userInfo = notification.request.content.userInfo;
     if ([notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
+        /// 收到的是远程通知
         [JPUSHService handleRemoteNotification:userInfo];
-        [_channel invokeMethod:@"onReceiveNotification" arguments:[self jpushFormatAPNSDic:userInfo]];
+        NSMutableDictionary *msg = [self jpushFormatAPNSDic:userInfo];
+        msg[@"title"] = notification.request.content.title;
+        msg[@"message"] = notification.request.content.body;
+        [_channel invokeMethod:@"onReceiveNotification" arguments:msg];
     } else {
-        NSLog(@"iOS10+ 前台收到本地通知:userInfo：%@", userInfo);
+        /// 收到的是本地通知, 就不需要做任何操作了
     }
-
     completionHandler(notificationTypes);
 }
 
+// iOS 10以及以上 点击通知
 - (void)jpushNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)())completionHandler  API_AVAILABLE(ios(10.0)) {
     NSLog(@"jpushNotificationCenter:didReceiveNotificationResponse::");
     NSDictionary *userInfo = response.notification.request.content.userInfo;
+    NSMutableDictionary *msg = [self jpushFormatAPNSDic:userInfo];
+    msg[@"title"] = response.notification.request.content.title;
+    msg[@"message"] = response.notification.request.content.body;
     if ([response.notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]]) {
+        // iOS 10 以上点击远程通知
         [JPUSHService handleRemoteNotification:userInfo];
-        [_channel invokeMethod:@"onOpenNotification" arguments:[self jpushFormatAPNSDic:userInfo]];
+//        [_channel invokeMethod:@"onOpenNotification" arguments:msg];
     } else {
         // iOS 10 以上点击本地通知
-        NSLog(@"iOS10+ 点击本地通知");
-        NSMutableDictionary *dic = [NSMutableDictionary dictionary];
-        NSString *identifier = response.notification.request.identifier;
-        NSString *body = response.notification.request.content.body;
-        NSString *categoryIdentifier = response.notification.request.content.categoryIdentifier;
-        NSString *title = response.notification.request.content.title;
-        NSString *subtitle = response.notification.request.content.subtitle;
-        NSString *threadIdentifier = response.notification.request.content.threadIdentifier;
-
-        [dic setValue:body ?: @"" forKey:@"body"];
-        [dic setValue:title ?: @"" forKey:@"title"];
-        [dic setValue:subtitle ?: @"" forKey:@"subtitle"];
-        [dic setValue:identifier ?: @"" forKey:@"identifier"];
-        [dic setValue:threadIdentifier ?: @"" forKey:@"threadIdentifier"];
-        [dic setValue:categoryIdentifier ?: @"" forKey:@"categoryIdentifier"];
-        if (userInfo && userInfo.count) {
-            NSMutableDictionary *extras = [NSMutableDictionary dictionary];
-            for (NSString *key in userInfo) {
-                extras[key] = userInfo[key];
-            }
-            dic[@"extras"] = extras;
-        }
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.channel invokeMethod:@"onOpenNotification" arguments:dic];
-        });
+//        dispatch_async(dispatch_get_main_queue(), ^{
+//            [self.channel invokeMethod:@"onOpenNotification" arguments:msg];
+//        });
     }
+    [_channel invokeMethod:@"onOpenNotification" arguments:msg];
     completionHandler();
+}
+
+//iOS 12 开始支持
+- (void)jpushNotificationCenter:(UNUserNotificationCenter *)center openSettingsForNotification:(UNNotification *)notification {
+    if (notification) {
+        //从通知界面直接进入应用
+    } else {
+        //从通知设置界面进入应用
+    }
 }
 
 - (void)jpushNotificationAuthorization:(JPAuthorizationStatus)status withInfo:(NSDictionary *)info {
@@ -557,18 +553,19 @@
 }
 
 - (NSMutableDictionary *)jpushFormatAPNSDic:(NSDictionary *)dic {
-    NSMutableDictionary *extras = @{}.mutableCopy;
+    NSMutableDictionary *extras = [NSMutableDictionary new];
+    NSMutableDictionary *formatDic = [NSMutableDictionary new];
     for (NSString *key in dic) {
-        if ([key isEqualToString:@"_j_business"] ||
-                [key isEqualToString:@"_j_msgid"] ||
-                [key isEqualToString:@"_j_uid"] ||
-                [key isEqualToString:@"actionIdentifier"] ||
-                [key isEqualToString:@"aps"]) {
+        if ([key isEqualToString:@"_j_msgid"]) {
+            formatDic[@"messageId"] = dic[@"_j_msgid"];
+            continue;
+        }
+        if ([key isEqualToString:@"_j_data_"] || [key isEqualToString:@"_j_business"] || [key isEqualToString:@"_j_uid"] ||
+                [key isEqualToString:@"actionIdentifier"] || [key isEqualToString:@"aps"]) {
             continue;
         }
         extras[key] = dic[key];
     }
-    NSMutableDictionary *formatDic = dic.mutableCopy;
     formatDic[@"extras"] = extras;
     return formatDic;
 }

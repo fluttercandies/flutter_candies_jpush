@@ -1,13 +1,17 @@
 package com.fluttercandies.flutter_candies_jpush;
 
 import android.content.Context;
-
+import android.content.Intent;
+import android.os.Handler;
 import android.util.Log;
 import android.util.Pair;
+
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import cn.jpush.android.api.CmdMessage;
 import cn.jpush.android.api.CustomMessage;
@@ -21,6 +25,7 @@ import io.flutter.plugin.common.MethodChannel;
  * 基于广播接收各种回调
  */
 public class JPushEventReceiver extends JPushMessageReceiver {
+    static FlutterCandiesJPushPlugin plugin;
     static String registrationId;
     static List<MethodChannel.Result> obtainRidCache = new ArrayList<>();
     static HashMap<Integer, Pair<String, MethodChannel.Result>> callbacks = new HashMap<>();
@@ -97,6 +102,7 @@ public class JPushEventReceiver extends JPushMessageReceiver {
     @Override // 通知开关状态回调
     public void onNotificationSettingsCheck(Context context, boolean b, int i) {
         super.onNotificationSettingsCheck(context, b, i);
+        if (plugin == null) return;
     }
 
     @SuppressWarnings({"ConstantConditions"})
@@ -112,18 +118,48 @@ public class JPushEventReceiver extends JPushMessageReceiver {
     @Override // 自定义消息回调
     public void onMessage(Context context, CustomMessage customMessage) {
         super.onMessage(context, customMessage);
+        if (plugin == null) return;
+        Gson gson = new Gson();
+        Map<String, Object> msg = new HashMap<>();
+        msg.put("messageId", customMessage.messageId);
+        msg.put("title", customMessage.title);
+        msg.put("message", customMessage.message);
+        msg.put("extras", gson.fromJson(customMessage.extra, Map.class));
+        new Handler(context.getMainLooper()).post(() -> plugin.channel.invokeMethod("onReceiveMessage", msg));
     }
 
     @Override // 收到通知回调
     public void onNotifyMessageArrived(Context context, NotificationMessage notificationMessage) {
         super.onNotifyMessageArrived(context, notificationMessage);
-
+        if (plugin == null) return;
+        Gson gson = new Gson();
+        Map<String, Object> msg = new HashMap<>();
+        msg.put("noticeId", notificationMessage.notificationId);
+        msg.put("messageId", notificationMessage.msgId);
+        msg.put("title", notificationMessage.notificationTitle);
+        msg.put("message", notificationMessage.notificationContent);
+        msg.put("extras", gson.fromJson(notificationMessage.notificationExtras, Map.class));
+        new Handler(context.getMainLooper()).post(() -> plugin.channel.invokeMethod("onReceiveNotification", msg));
     }
 
     @Override // 点击通知回调
     public void onNotifyMessageOpened(Context context, NotificationMessage notificationMessage) {
         super.onNotifyMessageOpened(context, notificationMessage);
         JPushInterface.reportNotificationOpened(context, notificationMessage.msgId);
+        if (plugin == null) return;
+        Gson gson = new Gson();
+        Map<String, Object> msg = new HashMap<>();
+        msg.put("noticeId", notificationMessage.notificationId);
+        msg.put("messageId", notificationMessage.msgId);
+        msg.put("title", notificationMessage.notificationTitle);
+        msg.put("message", notificationMessage.notificationContent);
+        msg.put("extras", gson.fromJson(notificationMessage.notificationExtras, Map.class));
+        new Handler(context.getMainLooper()).post(() -> plugin.channel.invokeMethod("onOpenNotification", msg));
+        Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+        if (launch == null) return;
+        launch.addCategory(Intent.CATEGORY_LAUNCHER);
+        launch.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        context.startActivity(launch);
     }
 
     @Override // 通知未展示回调

@@ -17,6 +17,7 @@ JPush Flutter Plugin
   s.public_header_files = 'Classes/**/*.h'
   s.dependency 'Flutter'
   s.dependency 'JPush','4.6.6'
+  s.dependency 'JCore','3.2.3'
   s.platform = :ios, '9.0'
   s.static_framework = true
 
