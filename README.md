@@ -4,3 +4,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/fluttercandies/flutter_candies_jpush?logo=github&style=flat-square)](https://github.com/fluttercandies/flutter_candies_jpush/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/fluttercandies/flutter_candies_jpush?logo=github&style=flat-square)](https://github.com/fluttercandies/flutter_candies_jpush/network)
 <a target="_blank" href="https://jq.qq.com/?_wv=1027&k=5bcc0gy"><img border="0" src="https://pub.idqqimg.com/wpa/images/group.png" alt="FlutterCandies" title="FlutterCandies"></a>
+
+集成时，只需要在 `build.gradle` 中 `android`-`defaultConfig`-`manifestPlaceholders` 中添加各个厂商密钥信息即可;
+
+密钥格式参照[厂商通道 SDK 集成指南](https://docs.jiguang.cn/jpush/client/Android/android_3rd_guide)
