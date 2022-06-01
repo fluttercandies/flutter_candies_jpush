@@ -1,52 +1,53 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.fluttercandies.flutter_candies_jpush">
+          xmlns:tools="http://schemas.android.com/tools"
+          package="com.fluttercandies.flutter_candies_jpush">
 
     <!-- 华为角标 -->
-    <uses-permission android:name="com.huawei.android.launcher.permission.CHANGE_BADGE" />
+    <uses-permission android:name="com.huawei.android.launcher.permission.CHANGE_BADGE"/>
     <!-- ViVO角标权限 -->
-    <uses-permission android:name="com.vivo.notification.permission.BADGE_ICON" />
+    <uses-permission android:name="com.vivo.notification.permission.BADGE_ICON"/>
     <!--振动器权限，JPUSH支持通知开启振动功能，小米推送必须-->
-    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.VIBRATE"/>
 
     <!-- 为了提高sdk识别唯一用户的能力，保证消息推送的精准送达，建议集成以下权限（可选）-->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-    <uses-permission android:name="android.permission.GET_TASKS" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
+    <uses-permission android:name="android.permission.GET_TASKS"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
 
     <!-- 扩展备用权限（可选）-->
     <permission
-        android:name="${applicationId}.permission.JOPERATE_MESSAGE"
-        android:protectionLevel="signature" />
-    <uses-permission android:name="${applicationId}.permission.JOPERATE_MESSAGE" />
+            android:name="${applicationId}.permission.JOPERATE_MESSAGE"
+            android:protectionLevel="signature"/>
+    <uses-permission android:name="${applicationId}.permission.JOPERATE_MESSAGE"/>
 
     <!-- 网络权限 （必选）-->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <!-- JPush自定义权限，用于发送接收广播权限校验（必选）-->
     <permission
-        android:name="${applicationId}.permission.JPUSH_MESSAGE"
-        android:protectionLevel="signature" />
-    <uses-permission android:name="${applicationId}.permission.JPUSH_MESSAGE" />
+            android:name="${applicationId}.permission.JPUSH_MESSAGE"
+            android:protectionLevel="signature"/>
+    <uses-permission android:name="${applicationId}.permission.JPUSH_MESSAGE"/>
 
     <application>
         <receiver
-            android:name=".JPushEventReceiver"
-            android:enabled="true"
-            android:exported="false">
+                android:name=".JPushEventReceiver"
+                android:enabled="true"
+                android:exported="false">
             <intent-filter>
-                <action android:name="cn.jpush.android.intent.RECEIVE_MESSAGE" />
-                <category android:name="${applicationId}" />
+                <action android:name="cn.jpush.android.intent.RECEIVE_MESSAGE"/>
+                <category android:name="${applicationId}"/>
             </intent-filter>
         </receiver>
 
         <service
-            android:name=".JPushCustomService"
-            android:enabled="true"
-            android:exported="false"
-            android:process=":pushcore">
+                android:name=".JPushCustomService"
+                android:enabled="true"
+                android:exported="false"
+                android:process=":pushcore">
             <intent-filter>
-                <action android:name="cn.jiguang.user.service.action" />
+                <action android:name="cn.jiguang.user.service.action"/>
             </intent-filter>
         </service>
     </application>
