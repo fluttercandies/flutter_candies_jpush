@@ -10,6 +10,7 @@ buildscript {
     }
 
     dependencies {
+        classpath 'com.huawei.agconnect:agcp:1.6.0.300'
         classpath 'com.android.tools.build:gradle:4.1.0'
     }
 }
@@ -65,7 +66,6 @@ dependencies {
 
     implementation 'cn.jiguang.sdk.plugin:huawei:4.6.6'
     implementation 'com.huawei.hms:push:6.3.0.304'
-    implementation 'com.huawei.agconnect:agcp:1.6.0.300'
 
     implementation 'cn.jiguang.sdk.plugin:oppo:4.6.6'
     implementation 'commons-codec:commons-codec:1.6'
